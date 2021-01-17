@@ -17,11 +17,21 @@ namespace LaundryManagement
 	/// <summary>
 	/// Window1.xaml 的交互逻辑
 	/// </summary>
-	public partial class Window1 : Window
+	public partial class LoginWindow : Window
 	{
-		public Window1()
+		public LoginWindow()
 		{
 			InitializeComponent();
+		}
+
+		private void BtnTest_Click(object sender, RoutedEventArgs e)
+		{
+			Browser.Address = "http://data.landeli.com/view/basic";
+		}
+
+		private void BtnFinish_Click(object sender, RoutedEventArgs e)
+		{
+			Hide();
 		}
 	}
 }
