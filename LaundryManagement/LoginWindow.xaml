@@ -18,7 +18,7 @@
 		<Border BorderThickness="1" BorderBrush="Black" Grid.ColumnSpan="2" Margin="0">
 			<wpf:ChromiumWebBrowser x:Name="Browser" Address="http://data.landeli.com/view/basic"></wpf:ChromiumWebBrowser>
 		</Border>
-		<Button x:Name="BtnTest" Content="已登录，点击测试" Margin="5" Grid.Row="1" Click="BtnTest_Click" />
+		<Button x:Name="BtnTest" Content="重新载入" Margin="5" Grid.Row="1" Click="BtnTest_Click" />
 		<Button x:Name="BtnFinish" Content="登录完成，点击退出" Grid.Column="1" Margin="5" Grid.Row="1" Click="BtnFinish_Click" />
 	</Grid>
 </Window>
