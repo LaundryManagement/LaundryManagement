@@ -11,6 +11,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using CefSharp;
+using CefSharp.Wpf;
+using CefSharp.BrowserSubprocess;
 
 namespace LaundryManagement
 {
@@ -26,12 +29,17 @@ namespace LaundryManagement
 
 		private void BtnTest_Click(object sender, RoutedEventArgs e)
 		{
-			Browser.Address = "http://data.landeli.com/view/basic";
+			Browser.Load("http://data.landeli.com/view/basic");
 		}
 
 		private void BtnFinish_Click(object sender, RoutedEventArgs e)
 		{
 			Hide();
+		}
+
+		private void LoginWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+		{
+			Browser.Delete();
 		}
 	}
 }

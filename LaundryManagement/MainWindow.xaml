@@ -16,8 +16,7 @@
 			<ColumnDefinition Width="200" />
 		</Grid.ColumnDefinitions>
 		<Button x:Name="BtnLogin" Content="登录" Grid.Column="1" Margin="10" Click="BtnLogin_Click" />
-		<Button x:Name="BtnFetch" Content="获取数据" Grid.Column="1" Margin="10" Grid.Row="1" />
+		<Button x:Name="BtnFetch" Content="获取数据" Grid.Column="1" Margin="10" Grid.Row="1" Click="BtnFetch_Click" />
 		<DataGrid x:Name="dataGrid" Margin="10" Grid.RowSpan="3" />
-		<WebBrowser Grid.Column="1" Grid.Row="2" />
 	</Grid>
 </Window>
