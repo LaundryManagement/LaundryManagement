@@ -1,9 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Windows;
-using CefSharp;
+﻿using CefSharp;
 using CefSharp.Wpf;
-using CefSharp.DevTools;
-using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Windows;
 
 namespace LaundryManagement
 {
