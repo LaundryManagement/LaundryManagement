@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Collections.Generic;
+using System.Windows;
 using CefSharp;
 using CefSharp.Wpf;
 using CefSharp.DevTools;
@@ -36,23 +37,29 @@ namespace LaundryManagement
 				return;
 			}
 			ChromiumWebBrowser browser = loginWindow.Browser;
+			List<string> SourceData = new List<string>();
 			while (true)
 			{
 				JavascriptResponse r = await browser.EvaluateScriptAsync("document.getElementsByTagName(\"tbody\")[0].innerText;");
 				string s = (string)r.Result;
-				// TODO: process
+				string[] data = s.Split('\n');
+				foreach (string i in data)
+				{
+					SourceData.Add(i);
+				}
 				JavascriptResponse n = await browser.EvaluateScriptAsync
 					("document.getElementsByClassName(\" ant-pagination-next\")[0].attributes[\"aria-disabled\"].value");
 				if ((string)n.Result == "true")
 				{
+					MessageBox.Show($"共读取了{SourceData.Count}条数据");
 					break;
 				}
 				else
 				{
-					JavascriptResponse btn = await browser.EvaluateScriptAsync
-						("document.getElementsByClassName(\" ant-pagination-next\")[0].click()");
+					browser.ExecuteScriptAsync("document.getElementsByClassName(\" ant-pagination-next\")[0].click()");
 				}
 			}
+			// TODO: 解析为类并放入数据库
 		}
 	}
 }
