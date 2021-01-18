@@ -30,15 +30,29 @@ namespace LaundryManagement
 
 		private async void BtnFetch_Click(object sender, RoutedEventArgs e)
 		{
-			//TODO: Execute a JavaScript...
 			if (loginWindow == null || loginWindow.Browser == null || loginWindow.Browser.Address != "http://data.landeli.com/view/basic")
 			{
 				MessageBox.Show("您还未登录", "提示", MessageBoxButton.OK, MessageBoxImage.Exclamation);
 				return;
 			}
-			var browser = loginWindow.Browser;
-			var r = await browser.EvaluateScriptAsync(@"document.getElementsByTagName(""tbody"")[0].innerText;");
-			string s = (string)r.Result;
+			ChromiumWebBrowser browser = loginWindow.Browser;
+			while (true)
+			{
+				JavascriptResponse r = await browser.EvaluateScriptAsync("document.getElementsByTagName(\"tbody\")[0].innerText;");
+				string s = (string)r.Result;
+				// TODO: process
+				JavascriptResponse n = await browser.EvaluateScriptAsync
+					("document.getElementsByClassName(\" ant-pagination-next\")[0].attributes[\"aria-disabled\"].value");
+				if ((string)n.Result == "true")
+				{
+					break;
+				}
+				else
+				{
+					JavascriptResponse btn = await browser.EvaluateScriptAsync
+						("document.getElementsByClassName(\" ant-pagination-next\")[0].click()");
+				}
+			}
 		}
 	}
 }
