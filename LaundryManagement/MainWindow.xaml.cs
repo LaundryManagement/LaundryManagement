@@ -1,15 +1,20 @@
 ﻿using CefSharp;
 using CefSharp.Wpf;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Windows;
+using System.Windows.Input;
 
 namespace LaundryManagement
 {
 	internal class Record
 	{
-		public readonly string OrderNo;
 		public readonly int StoreNo;
 		public readonly string StoreName;
 		public readonly int DeviceNo;
@@ -20,13 +25,28 @@ namespace LaundryManagement
 		public Record(string SourceDataItem)
 		{
 			string[] split = SourceDataItem.Split('\t');
-			OrderNo = split[0];
-			StoreNo = Convert.ToInt32(split[1]);
-			StoreName = split[2];
-			DeviceNo = Convert.ToInt32(split[6]);
-			ServiceType = split[7];
-			Paid = split[9] == "-" ? 0 : Convert.ToDouble(split[9][1..]);
-			CardDiscount = split[10] == "-" ? 0 : Convert.ToDouble(split[10][1..]);
+			StoreNo = Convert.ToInt32(split[0]);
+			StoreName = split[1];
+			DeviceNo = Convert.ToInt32(split[5]);
+			ServiceType = split[6];
+			Paid = split[8] == "-" ? 0 : Convert.ToDouble(split[8][1..]);
+			CardDiscount = split[9] == "-" ? 0 : Convert.ToDouble(split[9][1..]);
+		}
+	}
+
+	public class Data
+	{
+		public string Type { get; set; }
+		public string Income { get; set; }
+		public string Cash { get; set; }
+		public string Card { get; set; }
+
+		public Data(string type, double cash, double card)
+		{
+			Type = type;
+			Income = "￥" + (cash + card).ToString("F2");
+			Cash = "￥" + cash.ToString("F2");
+			Card = "￥" + card.ToString("F2");
 		}
 	}
 
@@ -43,6 +63,7 @@ namespace LaundryManagement
 		}
 
 		private LoginWindow loginWindow;
+		private ObservableCollection<Data> datas;
 
 		private void BtnLogin_Click(object sender, RoutedEventArgs e)
 		{
@@ -67,18 +88,16 @@ namespace LaundryManagement
 			{
 				JavascriptResponse r0 = await browser.EvaluateScriptAsync
 					("document.getElementsByTagName(\"tbody\")[0].innerText;");
-				JavascriptResponse r1 = await browser.EvaluateScriptAsync
-					("document.getElementsByTagName(\"tbody\")[1].innerText;");
+
 				string s0 = (string)r0.Result;
-				string s1 = (string)r1.Result;
+
 				string[] data = s0.Split('\n');
-				string[] orderNo = s1.Split('\n');
+
 				for (int i = 0; i < data.Length; i++)
 				{
-					string s = orderNo[i] + '\t' + data[i];
+					string s = data[i];
 					SourceData.Add(s);
 				}
-				Thread.Sleep(200);
 				JavascriptResponse next = await browser.EvaluateScriptAsync
 					("document.getElementsByClassName(\" ant-pagination-next\")[0].attributes[\"aria-disabled\"].value");
 				if ((string)next.Result == "true")
@@ -89,7 +108,7 @@ namespace LaundryManagement
 				else
 				{
 					browser.ExecuteScriptAsync("document.getElementsByClassName(\" ant-pagination-next\")[0].click()");
-					Thread.Sleep(200);
+					Thread.Sleep(300);
 				}
 			}
 			JavascriptResponse prev = await browser.EvaluateScriptAsync
@@ -98,16 +117,91 @@ namespace LaundryManagement
 			{
 				browser.ExecuteScriptAsync
 					("document.getElementsByClassName(\" ant-pagination-prev\")[0].click()");
-				Thread.Sleep(200);
+				Thread.Sleep(300);
 				prev = await browser.EvaluateScriptAsync
 					("document.getElementsByClassName(\" ant-pagination-prev\")[0].attributes[\"aria-disabled\"].value");
 			}
-			// TODO: 解析为类并放入数据库
 			records = new List<Record>();
 			foreach (string source in SourceData)
 			{
 				records.Add(new Record(source));
 			}
+			// TODO: 汇总数据
+			IEnumerable<double> queryCash = from r in records
+											where r.ServiceType.EndsWith('洗')
+											select r.Paid,
+								queryCard = from r in records
+											where r.ServiceType.EndsWith('洗')
+											select r.CardDiscount;
+			datas = new ObservableCollection<Data>();
+			datas.Add(new Data("洗衣", queryCash.Sum(), queryCard.Sum()));
+			queryCash = from r in records
+						where r.ServiceType.EndsWith('烘')
+						select r.Paid;
+			queryCard = from r in records
+						where r.ServiceType.EndsWith('烘')
+						select r.CardDiscount;
+			datas.Add(new Data("烘衣", queryCash.Sum(), queryCard.Sum()));
+			queryCash = from r in records
+						select r.Paid;
+			queryCard = from r in records
+						select r.CardDiscount;
+			datas.Add(new Data("合计", queryCash.Sum(), queryCard.Sum()));
+			dataGrid.DataContext = datas;
+		}
+
+		private void BtnExport_Click(object sender, RoutedEventArgs e)
+		{
+			if (dataGrid.DataContext != datas)
+			{
+				MessageBox.Show("暂无数据，请确认是否已获取");
+				return;
+			}
+			SaveFileDialog saveFileDialog = new SaveFileDialog()
+			{
+				DefaultExt = "csv",
+				Filter = "逗号分隔值文件 (*.csv)|*.csv"
+			};
+			if ((bool)saveFileDialog.ShowDialog())
+			{
+				dataGrid.SelectAllCells();
+				object t = Clipboard.GetDataObject();
+				Clipboard.Clear();
+				ApplicationCommands.Copy.Execute(null, dataGrid);
+				dataGrid.UnselectAllCells();
+				string dataText = "";
+				for (int i = 0; i < 10; i++)
+				{
+					try
+					{
+						dataText = Clipboard.GetText(TextDataFormat.CommaSeparatedValue);
+						break;
+					}
+					catch { }
+					if (i == 9)
+					{
+						MessageBox.Show("导出失败");
+						return;
+					}
+					Thread.Sleep(100);
+				}
+				Clipboard.SetDataObject(t);
+				Clipboard.Flush();
+				try
+				{
+					File.WriteAllText(saveFileDialog.FileName, dataText, Encoding.UTF8);
+					MessageBox.Show("导出成功", "提示");
+				}
+				catch (Exception exception)
+				{
+					MessageBox.Show("导出文件时发生错误：\n" + exception.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+				}
+			}
+		}
+
+		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+		{
+			loginWindow.Close();
 		}
 	}
 }
