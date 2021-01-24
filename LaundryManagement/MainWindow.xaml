@@ -4,7 +4,7 @@
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		mc:Ignorable="d"
-        Title="洗衣店管理系统" Height="450" Width="800" Closing="Window_Closing">
+        Title="洗衣店数据汇总系统" Height="450" Width="800" Closing="Window_Closing" Icon="washing-machine.png">
 	<Grid>
 		<Grid.RowDefinitions>
 			<RowDefinition Height="60" />

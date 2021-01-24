@@ -9,6 +9,7 @@
 	<CefSharpAnyCpuSupport>true</CefSharpAnyCpuSupport>
 	<Platforms>AnyCPU;x64</Platforms>
 	<UseWindowsForms>true</UseWindowsForms>
+	<ApplicationIcon>washing-machine.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -20,8 +21,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="washing-machine.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CefSharp.Wpf" Version="87.1.131-pre" />
-    <PackageReference Include="Microsoft.ClearScript" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -30,6 +34,18 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
+    <Compile Update="Resource1.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resource1.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resource1.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resource1.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -37,6 +53,14 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Resources\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="washing-machine.png" />
   </ItemGroup>
 
 </Project>

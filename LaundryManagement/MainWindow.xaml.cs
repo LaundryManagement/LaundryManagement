@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows;
-using System.Windows.Input;
+using System.Windows.Media.Imaging;
 
 namespace LaundryManagement
 {
@@ -57,10 +57,7 @@ namespace LaundryManagement
 	{
 		private List<Record> records;
 
-		public MainWindow()
-		{
-			InitializeComponent();
-		}
+		public MainWindow() => InitializeComponent();
 
 		private LoginWindow loginWindow;
 		private ObservableCollection<Data> datas;
@@ -82,59 +79,61 @@ namespace LaundryManagement
 				MessageBox.Show("您还未登录", "提示", MessageBoxButton.OK, MessageBoxImage.Exclamation);
 				return;
 			}
-			ChromiumWebBrowser browser = loginWindow.Browser;
-			List<string> SourceOrderNo = new List<string>(), SourceData = new List<string>();
-			while (true)
+			List<string> SourceData = new List<string>();
+			using (ChromiumWebBrowser browser = loginWindow.Browser)
 			{
-				JavascriptResponse r0 = await browser.EvaluateScriptAsync
-					("document.getElementsByTagName(\"tbody\")[0].innerText;");
-
-				string s0 = (string)r0.Result;
-
-				string[] data = s0.Split('\n');
-
-				for (int i = 0; i < data.Length; i++)
+				while (true)
 				{
-					string s = data[i];
-					SourceData.Add(s);
+					JavascriptResponse r0 = await browser.EvaluateScriptAsync
+						("document.getElementsByTagName(\"tbody\")[0].innerText;");
+
+					string s0 = (string)r0.Result;
+					string[] data = s0.Split('\n');
+
+					for (int i = 0; i < data.Length; i++)
+					{
+						string s = data[i];
+						SourceData.Add(s);
+					}
+					JavascriptResponse next = await browser.EvaluateScriptAsync
+						("document.getElementsByClassName(\" ant-pagination-next\")[0].attributes[\"aria-disabled\"].value");
+					if ((string)next.Result == "true")
+					{
+						MessageBox.Show($"共读取了{SourceData.Count}条数据");
+						break;
+					}
+					else
+					{
+						browser.ExecuteScriptAsync("document.getElementsByClassName(\" ant-pagination-next\")[0].click()");
+						Thread.Sleep(300);
+					}
 				}
-				JavascriptResponse next = await browser.EvaluateScriptAsync
-					("document.getElementsByClassName(\" ant-pagination-next\")[0].attributes[\"aria-disabled\"].value");
-				if ((string)next.Result == "true")
+				JavascriptResponse prev = await browser.EvaluateScriptAsync
+						("document.getElementsByClassName(\" ant-pagination-prev\")[0].attributes[\"aria-disabled\"].value");
+				while ((string)prev.Result == "false")
 				{
-					MessageBox.Show($"共读取了{SourceData.Count}条数据");
-					break;
-				}
-				else
-				{
-					browser.ExecuteScriptAsync("document.getElementsByClassName(\" ant-pagination-next\")[0].click()");
+					browser.ExecuteScriptAsync
+						("document.getElementsByClassName(\" ant-pagination-prev\")[0].click()");
 					Thread.Sleep(300);
+					prev = await browser.EvaluateScriptAsync
+						("document.getElementsByClassName(\" ant-pagination-prev\")[0].attributes[\"aria-disabled\"].value");
 				}
-			}
-			JavascriptResponse prev = await browser.EvaluateScriptAsync
-					("document.getElementsByClassName(\" ant-pagination-prev\")[0].attributes[\"aria-disabled\"].value");
-			while ((string)prev.Result == "false")
-			{
-				browser.ExecuteScriptAsync
-					("document.getElementsByClassName(\" ant-pagination-prev\")[0].click()");
-				Thread.Sleep(300);
-				prev = await browser.EvaluateScriptAsync
-					("document.getElementsByClassName(\" ant-pagination-prev\")[0].attributes[\"aria-disabled\"].value");
 			}
 			records = new List<Record>();
 			foreach (string source in SourceData)
 			{
 				records.Add(new Record(source));
 			}
-			// TODO: 汇总数据
 			IEnumerable<double> queryCash = from r in records
 											where r.ServiceType.EndsWith('洗')
 											select r.Paid,
 								queryCard = from r in records
 											where r.ServiceType.EndsWith('洗')
 											select r.CardDiscount;
-			datas = new ObservableCollection<Data>();
-			datas.Add(new Data("洗衣", queryCash.Sum(), queryCard.Sum()));
+			datas = new ObservableCollection<Data>
+			{
+				new Data("洗衣", queryCash.Sum(), queryCard.Sum())
+			};
 			queryCash = from r in records
 						where r.ServiceType.EndsWith('烘')
 						select r.Paid;
@@ -159,49 +158,26 @@ namespace LaundryManagement
 			}
 			SaveFileDialog saveFileDialog = new SaveFileDialog()
 			{
+				FileName = DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv",
 				DefaultExt = "csv",
 				Filter = "逗号分隔值文件 (*.csv)|*.csv"
 			};
 			if ((bool)saveFileDialog.ShowDialog())
 			{
-				dataGrid.SelectAllCells();
-				object t = Clipboard.GetDataObject();
-				Clipboard.Clear();
-				ApplicationCommands.Copy.Execute(null, dataGrid);
-				dataGrid.UnselectAllCells();
-				string dataText = "";
-				for (int i = 0; i < 10; i++)
+				StreamWriter csvFile = new StreamWriter(saveFileDialog.FileName, false, Encoding.UTF8);
+				csvFile.WriteLine("业务种类,总收入,现金支付,刷卡支付");
+				foreach (Data d in datas)
 				{
-					try
-					{
-						dataText = Clipboard.GetText(TextDataFormat.CommaSeparatedValue);
-						break;
-					}
-					catch { }
-					if (i == 9)
-					{
-						MessageBox.Show("导出失败");
-						return;
-					}
-					Thread.Sleep(100);
+					csvFile.WriteLine("{0},{1},{2},{3}", d.Type, d.Income, d.Cash, d.Card);
 				}
-				Clipboard.SetDataObject(t);
-				Clipboard.Flush();
-				try
-				{
-					File.WriteAllText(saveFileDialog.FileName, dataText, Encoding.UTF8);
-					MessageBox.Show("导出成功", "提示");
-				}
-				catch (Exception exception)
-				{
-					MessageBox.Show("导出文件时发生错误：\n" + exception.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-				}
+				csvFile.Close();
 			}
 		}
 
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
 		{
-			loginWindow.Close();
+			if (loginWindow != null)
+				loginWindow.Close();
 		}
 	}
 }
