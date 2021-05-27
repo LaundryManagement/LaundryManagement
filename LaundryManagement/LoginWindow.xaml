@@ -5,7 +5,7 @@
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:wpf="clr-namespace:CefSharp.Wpf;assembly=CefSharp.Wpf"
 		mc:Ignorable="d"
-        Title="登录窗" Height="450" Width="800" WindowState="Maximized" Background="White" ResizeMode="CanMinimize" Closing="LoginWindow_Closing">
+        Title="登录窗" Height="450" Width="800" WindowState="Normal" Background="White" ResizeMode="CanResize" Closing="LoginWindow_Closing">
 	<Grid>
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition />
