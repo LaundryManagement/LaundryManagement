@@ -4,15 +4,16 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace LaundryManagement
 {
-	internal class Record
+	public class Record
 	{
 		public readonly int StoreNo;
 		public readonly string StoreName;
@@ -33,14 +34,14 @@ namespace LaundryManagement
 		}
 	}
 
-	public class Data
+	public class DigestData
 	{
 		public string Type { get; set; }
 		public string Income { get; set; }
 		public string Cash { get; set; }
 		public string Card { get; set; }
 
-		public Data(string type, double cash, double card)
+		public DigestData(string type, double cash, double card)
 		{
 			Type = type;
 			Income = "￥" + (cash + card).ToString("F2");
@@ -59,7 +60,7 @@ namespace LaundryManagement
 		public MainWindow() => InitializeComponent();
 
 		private LoginWindow loginWindow;
-		private ObservableCollection<Data> datas;
+		private ObservableCollection<DigestData> digestDatas;
 
 		private void BtnLogin_Click(object sender, RoutedEventArgs e)
 		{
@@ -93,28 +94,25 @@ namespace LaundryManagement
 						string s = data[i];
 						SourceData.Add(s);
 					}
-					JavascriptResponse next = await browser.EvaluateScriptAsync
+					JavascriptResponse last = await browser.EvaluateScriptAsync
 						("document.getElementsByClassName(\"ant-pagination-next\")[0].attributes[\"aria-disabled\"].value");
-					if ((string)next.Result == "true")
+					if ((string)last.Result == "true")
 					{
 						MessageBox.Show($"共读取了{SourceData.Count}条数据");
 						break;
 					}
 					else
 					{
-						int pageNum = (int)(await browser
-							.EvaluateScriptAsync
-							("parseInt(document.getElementsByClassName(\"ant-pagination-item-active\")[0].title);"))
-							.Result;
-						browser.ExecuteScriptAsync
-							($"document.getElementsByClassName(\"ant-pagination-{pageNum + 1}\")[0].click();");
-						JavascriptResponse nextPage = await browser.EvaluateScriptAsync
-						("parseInt(document.getElementsByClassName(\"ant-pagination-item-active\")[0].title);");
-						while (nextPage.Result != null && (int)nextPage.Result != pageNum + 1)
+						const string GetCurrentPage = "parseInt(document.getElementsByClassName(\"ant-pagination-item-active\")[0].title);";
+						int pageNum = (int)(await browser.EvaluateScriptAsync(GetCurrentPage)).Result;
+						const string SwitchToNextPage = "document.getElementsByClassName(\"ant-pagination-next\")[0].click();";
+						browser.ExecuteScriptAsync(SwitchToNextPage);
+						Task<JavascriptResponse> nextPage = browser.EvaluateScriptAsync(GetCurrentPage);
+						while ((await nextPage).Result != null && (int)(await nextPage).Result != pageNum + 1)
 						{
 							Thread.Sleep(300);
-							browser.ExecuteScriptAsync($"document.getElementsByClassName(\"ant-pagination-next\")[0].click();");
-							nextPage = await browser.EvaluateScriptAsync("parseInt(document.getElementsByClassName(\"ant-pagination-item-active\")[0].title);");
+							browser.ExecuteScriptAsync(SwitchToNextPage);
+							nextPage = browser.EvaluateScriptAsync(GetCurrentPage);
 						}
 					}
 				}
@@ -125,31 +123,13 @@ namespace LaundryManagement
 			{
 				records.Add(new Record(source));
 			}
-
-			List<Record> query = records.Where(r => r.ServiceType.EndsWith('洗')).ToList();
-			IEnumerable<double> queryCash = query.Select(r => r.Paid);
-			IEnumerable<double> queryCard = query.Select(r => r.CardDiscount);
-			double cashWash = queryCash.Sum(),
-				cardWash = queryCard.Sum();
-			datas = new ObservableCollection<Data>
-			{
-				new Data("洗衣", cashWash, cardWash)
-			};
-
-			query = records.Where(r => r.ServiceType.EndsWith('烘')).ToList();
-			queryCash = query.Select(r => r.Paid);
-			queryCard = query.Select(r => r.CardDiscount);
-			double cashDry = queryCash.Sum(), cardDry = queryCard.Sum();
-			datas.Add(new Data("烘衣", cashDry, cardDry));
-
-			datas.Add(new Data("合计", cashWash + cashDry, cardWash + cardDry));
-
-			dataGrid.DataContext = datas;
+			digestDatas = Processer.Process(records);
+			dataGrid.DataContext = digestDatas;
 		}
 
 		private void BtnExport_Click(object sender, RoutedEventArgs e)
 		{
-			if (dataGrid.DataContext != datas)
+			if (digestDatas == null)
 			{
 				MessageBox.Show("暂无数据，请确认是否已获取");
 				return;
@@ -166,10 +146,12 @@ namespace LaundryManagement
 				{
 					StreamWriter csvFile = new StreamWriter(saveFileDialog.FileName, false, Encoding.UTF8);
 					csvFile.WriteLine("业务种类,总收入,现金支付,刷卡支付");
-					foreach (Data d in datas)
+					foreach (DigestData d in digestDatas)
 					{
 						csvFile.WriteLine("{0},{1},{2},{3}", d.Type, d.Income, d.Cash, d.Card);
 					}
+					csvFile.Flush();
+					csvFile.Close();
 				}
 				catch (UnauthorizedAccessException uaException)
 				{
@@ -190,7 +172,7 @@ namespace LaundryManagement
 			}
 		}
 
-		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+		private void Window_Closing(object sender, CancelEventArgs e)
 		{
 			if (loginWindow != null)
 				loginWindow.Close();

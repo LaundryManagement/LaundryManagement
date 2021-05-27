@@ -1,4 +1,4 @@
-﻿using CefSharp;
+﻿using System.ComponentModel;
 using System.Windows;
 
 namespace LaundryManagement
@@ -14,6 +14,6 @@ namespace LaundryManagement
 
 		private void BtnFinish_Click(object sender, RoutedEventArgs e) => Hide();
 
-		private void LoginWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e) => Browser.Delete();
+		private void LoginWindow_Closing(object sender, CancelEventArgs e) => Browser.Dispose();
 	}
 }
