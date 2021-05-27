@@ -33,7 +33,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CefSharp.Wpf" Version="87.1.132" />
+		<PackageReference Include="CefSharp.Wpf" Version="90.6.50" />
 	</ItemGroup>
 
 	<ItemGroup>
