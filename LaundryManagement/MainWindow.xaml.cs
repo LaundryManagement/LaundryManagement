@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -25,12 +26,12 @@ namespace LaundryManagement
 		public Record(string SourceDataItem)
 		{
 			string[] split = SourceDataItem.Split('\t');
-			StoreNo = Convert.ToInt32(split[0]);
+			StoreNo = Convert.ToInt32(split[0], CultureInfo.CurrentCulture);
 			StoreName = split[1];
-			DeviceNo = Convert.ToInt32(split[5]);
+			DeviceNo = Convert.ToInt32(split[5], CultureInfo.CurrentCulture);
 			ServiceType = split[6];
-			Paid = split[8] == "-" ? 0 : Convert.ToDouble(split[8][1..]);
-			CardDiscount = split[9] == "-" ? 0 : Convert.ToDouble(split[9][1..]);
+			Paid = split[8] == "-" ? 0 : Convert.ToDouble(split[8][1..], CultureInfo.CurrentCulture);
+			CardDiscount = split[9] == "-" ? 0 : Convert.ToDouble(split[9][1..], CultureInfo.CurrentCulture);
 		}
 	}
 
@@ -44,9 +45,9 @@ namespace LaundryManagement
 		public DigestData(string type, double cash, double card)
 		{
 			Type = type;
-			Income = "￥" + (cash + card).ToString("F2");
-			Cash = "￥" + cash.ToString("F2");
-			Card = "￥" + card.ToString("F2");
+			Income = "￥" + (cash + card).ToString("F2", CultureInfo.CurrentCulture);
+			Cash = "￥" + cash.ToString("F2", CultureInfo.CurrentCulture);
+			Card = "￥" + card.ToString("F2", CultureInfo.CurrentCulture);
 		}
 	}
 
@@ -78,7 +79,7 @@ namespace LaundryManagement
 				MessageBox.Show("您还未登录", "提示", MessageBoxButton.OK, MessageBoxImage.Exclamation);
 				return;
 			}
-			List<string> SourceData = new List<string>();
+			List<string> SourceData = new();
 			using (ChromiumWebBrowser browser = loginWindow.Browser)
 			{
 				while (true)
@@ -134,9 +135,9 @@ namespace LaundryManagement
 				MessageBox.Show("暂无数据，请确认是否已获取");
 				return;
 			}
-			SaveFileDialog saveFileDialog = new SaveFileDialog()
+			SaveFileDialog saveFileDialog = new()
 			{
-				FileName = DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv",
+				FileName = DateTime.Now.ToString("yyyyMMddHHmmss", CultureInfo.CurrentCulture) + ".csv",
 				DefaultExt = "csv",
 				Filter = "逗号分隔值文件 (*.csv)|*.csv"
 			};
@@ -144,14 +145,12 @@ namespace LaundryManagement
 			{
 				try
 				{
-					StreamWriter csvFile = new StreamWriter(saveFileDialog.FileName, false, Encoding.UTF8);
+					using StreamWriter csvFile = new(saveFileDialog.FileName, false);
 					csvFile.WriteLine("业务种类,总收入,现金支付,刷卡支付");
 					foreach (DigestData d in digestDatas)
 					{
 						csvFile.WriteLine("{0},{1},{2},{3}", d.Type, d.Income, d.Cash, d.Card);
 					}
-					csvFile.Flush();
-					csvFile.Close();
 				}
 				catch (UnauthorizedAccessException uaException)
 				{
