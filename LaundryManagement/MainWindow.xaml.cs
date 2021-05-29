@@ -65,10 +65,7 @@ namespace LaundryManagement
 
 		private void BtnLogin_Click(object sender, RoutedEventArgs e)
 		{
-			if (loginWindow == null)
-			{
-				loginWindow = new LoginWindow();
-			}
+			loginWindow ??= new LoginWindow();
 			loginWindow.Show();
 		}
 
@@ -173,8 +170,7 @@ namespace LaundryManagement
 
 		private void Window_Closing(object sender, CancelEventArgs e)
 		{
-			if (loginWindow != null)
-				loginWindow.Close();
+			loginWindow?.Close();
 		}
 	}
 }
