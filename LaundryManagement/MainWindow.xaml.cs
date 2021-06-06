@@ -73,7 +73,7 @@ namespace LaundryManagement
 		{
 			if (loginWindow == null || loginWindow.Browser == null || loginWindow.Browser.Address != "http://data.landeli.com/view/basic")
 			{
-				MessageBox.Show("您还未登录", "提示", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+				_ = MessageBox.Show("您还未登录", "提示", MessageBoxButton.OK, MessageBoxImage.Exclamation);
 				return;
 			}
 			List<string> SourceData = new();
@@ -92,11 +92,11 @@ namespace LaundryManagement
 						string s = data[i];
 						SourceData.Add(s);
 					}
-					JavascriptResponse last = await browser.EvaluateScriptAsync
-						("document.getElementsByClassName(\"ant-pagination-next\")[0].attributes[\"aria-disabled\"].value");
+					JavascriptResponse last = await browser
+						.EvaluateScriptAsync("document.getElementsByClassName(\"ant-pagination-next\")[0].attributes[\"aria-disabled\"].value");
 					if ((string)last.Result == "true")
 					{
-						MessageBox.Show($"共读取了{SourceData.Count}条数据");
+						_ = MessageBox.Show($"共读取了{SourceData.Count}条数据");
 						break;
 					}
 					else
@@ -108,7 +108,7 @@ namespace LaundryManagement
 						Task<JavascriptResponse> nextPage = browser.EvaluateScriptAsync(GetCurrentPage);
 						while ((await nextPage).Result != null && (int)(await nextPage).Result != pageNum + 1)
 						{
-							Thread.Sleep(300);
+							await Task.Delay(300);
 							browser.ExecuteScriptAsync(SwitchToNextPage);
 							nextPage = browser.EvaluateScriptAsync(GetCurrentPage);
 						}
@@ -129,7 +129,7 @@ namespace LaundryManagement
 		{
 			if (digestDatas == null)
 			{
-				MessageBox.Show("暂无数据，请确认是否已获取");
+				_ = MessageBox.Show("暂无数据，请确认是否已获取");
 				return;
 			}
 			SaveFileDialog saveFileDialog = new()
@@ -151,20 +151,20 @@ namespace LaundryManagement
 				}
 				catch (UnauthorizedAccessException uaException)
 				{
-					MessageBox.Show("访问被拒绝，请选择其他目录\n" + uaException.Message);
+					_ = MessageBox.Show("访问被拒绝，请选择其他目录\n" + uaException.Message);
 				}
 				catch (IOException ioException)
 				{
-					MessageBox.Show("I/O 错误\n" + ioException.Message);
+					_ = MessageBox.Show("I/O 错误\n" + ioException.Message);
 				}
 				catch (Exception exception)
 				{
-					MessageBox.Show("未知错误\n" + exception.StackTrace);
+					_ = MessageBox.Show("未知错误\n" + exception.StackTrace);
 				}
 			}
 			else
 			{
-				MessageBox.Show("未选择文件", "提示", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+				_ = MessageBox.Show("未选择文件", "提示", MessageBoxButton.OK, MessageBoxImage.Exclamation);
 			}
 		}
 
