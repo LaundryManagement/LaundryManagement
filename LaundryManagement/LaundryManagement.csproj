@@ -30,13 +30,13 @@
 	<ItemGroup>
 		<None Remove="washing-machine.png" />
 		<None Include="washing-machine.png">
-		  <Pack>True</Pack>
-		  <PackagePath></PackagePath>
+			<Pack>True</Pack>
+			<PackagePath></PackagePath>
 		</None>
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CefSharp.Wpf.NETCore" Version="90.6.50" />
+		<PackageReference Include="CefSharp.Wpf.NETCore" Version="91.1.160" />
 	</ItemGroup>
 
 	<ItemGroup>
