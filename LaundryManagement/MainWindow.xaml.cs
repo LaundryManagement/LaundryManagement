@@ -7,10 +7,9 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace LaundryManagement
 {
@@ -76,6 +75,13 @@ namespace LaundryManagement
 				_ = MessageBox.Show("您还未登录", "提示", MessageBoxButton.OK, MessageBoxImage.Exclamation);
 				return;
 			}
+			if (sender is not Button btn)
+			{
+				_ = MessageBox.Show(this, "非法访问", "内部错误");
+				return;
+			}
+			btn.IsEnabled = false;
+			btn.Content = "获取中";
 			List<string> SourceData = new();
 			using (ChromiumWebBrowser browser = loginWindow.Browser)
 			{
@@ -104,17 +110,17 @@ namespace LaundryManagement
 						const string GetCurrentPage = "parseInt(document.getElementsByClassName(\"ant-pagination-item-active\")[0].title);";
 						int pageNum = (int)(await browser.EvaluateScriptAsync(GetCurrentPage)).Result;
 						const string SwitchToNextPage = "document.getElementsByClassName(\"ant-pagination-next\")[0].click();";
-						browser.ExecuteScriptAsync(SwitchToNextPage);
-						Task<JavascriptResponse> nextPage = browser.EvaluateScriptAsync(GetCurrentPage);
-						while ((await nextPage).Result != null && (int)(await nextPage).Result != pageNum + 1)
+						_ = await browser.EvaluateScriptAsync(SwitchToNextPage);
+						JavascriptResponse currentPage = await browser.EvaluateScriptAsync(GetCurrentPage);
+						while (currentPage.Result is int result && result != pageNum + 1)
 						{
 							await Task.Delay(300);
-							browser.ExecuteScriptAsync(SwitchToNextPage);
-							nextPage = browser.EvaluateScriptAsync(GetCurrentPage);
+							_ = await browser.EvaluateScriptAsync(SwitchToNextPage);
+							currentPage = await browser.EvaluateScriptAsync(GetCurrentPage);
 						}
 					}
 				}
-				browser.ExecuteScriptAsync("document.getElementsByClassName(\"ant-pagination-item-1\")[0].click();");
+				_ = await browser.EvaluateScriptAsync("document.getElementsByClassName(\"ant-pagination-item-1\")[0].click();");
 			}
 			records = new List<Record>();
 			foreach (string source in SourceData)
@@ -123,6 +129,8 @@ namespace LaundryManagement
 			}
 			digestDatas = Processer.Process(records);
 			dataGrid.DataContext = digestDatas;
+			btn.IsEnabled = true;
+			btn.Content = "获取数据";
 		}
 
 		private void BtnExport_Click(object sender, RoutedEventArgs e)
